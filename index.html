@@ -25,7 +25,7 @@
 
     <div class="relative z-10 flex flex-col md:flex-row h-screen justify-between p-4 md:p-6 pointer-events-none">
         
-        <!-- Left Panel: Stats & Milestones -->
+        <!-- Left Panel -->
         <div class="w-full md:w-96 flex flex-col gap-4 pointer-events-auto max-h-full overflow-hidden">
             <div class="glass-panel p-5 shadow-2xl">
                 <div class="flex justify-between items-center mb-2">
@@ -51,6 +51,13 @@
                     </div>
                 </div>
             </div>
+<!-- TLAČIDLO NA FACEBOOK -->
+            <a href="https://chat.google.com/dm/htNDgsAAAAE/UIfGX7E6cyc/UIfGX7E6cyc?cls=10" target="_blank" class="w-full inline-flex items-center justify-center gap-2 text-xs py-3 px-4 rounded-xl bg-blue-600/90 hover:bg-blue-600 text-white font-bold transition shadow-lg border border-blue-500/40 pointer-events-auto">
+                <i class="fa-brands fa-facebook text-base"></i> Sleduj nás na Facebooku
+            </a>
+
+            <!-- Current Location StreetView Card -->
+            <div id="current-location-card"></div>
 
             <!-- Milestones -->
             <div class="glass-panel p-4 flex-1 flex flex-col min-h-0">
@@ -61,7 +68,7 @@
             </div>
         </div>
 
-        <!-- Right Panel: Form & Tabs -->
+        <!-- Right Panel -->
         <div class="w-full md:w-96 flex flex-col gap-4 pointer-events-auto mt-4 md:mt-0 max-h-full overflow-hidden">
             <div class="glass-panel p-5 shadow-2xl flex flex-col">
                 <div class="flex justify-between items-center mb-3">
@@ -87,7 +94,7 @@
                 </form>
             </div>
 
-            <!-- Tabs: Leaderboard & Feed -->
+            <!-- Tabs -->
             <div class="glass-panel p-4 flex-1 flex flex-col min-h-0">
                 <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
                     <div class="flex gap-3">
@@ -116,7 +123,7 @@
             { name: "Tokio (Cieľ)", lat: 35.6762, lng: 139.6503, targetKm: 9100 }
         ];
         const TOTAL_DISTANCE = 9100;
-        const ADMIN_PIN = "1234"; // Váš PIN pre správcu
+        const ADMIN_PIN = "1234";
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynrt9fpq1a0LzplHb1e9BmcmmV_PNaC6wbQhM9T-0J8z5N-7A73yI9EJzhA5tgf3jQ/exec";
 
         let runsArray = [];
@@ -125,7 +132,6 @@
 
         document.getElementById('run-date').valueAsDate = new Date();
 
-        // 1. NAČÍTANIE DÁT Z GOOGLE SHEETS (doGet)
         function fetchRuns() {
             fetch(SCRIPT_URL)
                 .then(response => response.json())
@@ -136,7 +142,6 @@
                 .catch(err => console.error("Chyba pri načítaní z Google Sheets:", err));
         }
 
-        // Automatické obnavovanie každých 10 sekúnd
         setInterval(fetchRuns, 10000);
         fetchRuns();
 
@@ -173,6 +178,31 @@
             }
         }
 
+        function getCurrentRoutePoint(totalKm) {
+            const start = ROUTE_POINTS[0];
+            const end = ROUTE_POINTS[ROUTE_POINTS.length - 1];
+            const progressRatio = Math.min(1, totalKm / TOTAL_DISTANCE);
+
+            if (progressRatio <= 0) return start;
+
+            for (let i = 0; i < ROUTE_POINTS.length - 1; i++) {
+                const p1 = ROUTE_POINTS[i];
+                const p2 = ROUTE_POINTS[i+1];
+                const segmentDist = p2.targetKm - p1.targetKm;
+
+                if (totalKm <= p2.targetKm) {
+                    const segmentProgress = (totalKm - p1.targetKm) / segmentDist;
+                    return {
+                        name: `Medzi ${p1.name.split(' ')[0]} a ${p2.name.split(' ')[0]}`,
+                        lat: p1.lat + (p2.lat - p1.lat) * segmentProgress,
+                        lng: p1.lng + (p2.lng - p1.lng) * segmentProgress,
+                        targetKm: totalKm
+                    };
+                }
+            }
+            return end;
+        }
+
         function updateUI() {
             const totalKm = runsArray.reduce((acc, r) => acc + parseFloat(r.km || 0), 0);
             const progress = Math.min(100, (totalKm / TOTAL_DISTANCE) * 100);
@@ -182,6 +212,20 @@
             document.getElementById('progress-bar').style.width = progress + '%';
             document.getElementById('remaining-km').innerText = Math.max(0, TOTAL_DISTANCE - totalKm).toFixed(1) + ' km';
             document.getElementById('runner-count').innerText = runsArray.length + ' behov';
+
+            // Aktuálna poloha s presným špendlíkom
+            const currentSpot = getCurrentRoutePoint(totalKm);
+           const currentSVUrl = `https://www.google.com/maps/search/?api=1&query=${currentSpot.lat.toFixed(4)},${currentSpot.lng.toFixed(4)}`;
+            
+            document.getElementById('current-location-card').innerHTML = `
+                <div class="glass-panel p-3.5 border border-amber-500/40 bg-gradient-to-r from-amber-500/10 to-red-500/10">
+                    <div class="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1"><i class="fa-solid fa-satellite-dish mr-1"></i> Aktuálna poloha na trase</div>
+                    <div class="text-xs font-black text-white mb-2">${currentSpot.name} (${totalKm.toFixed(1)} km)</div>
+                    <a href="${currentSVUrl}" target="_blank" class="w-full inline-flex items-center justify-center gap-2 text-xs py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-lg">
+                        <i class="fa-solid fa-street-view"></i> Zobraziť polohu na Google Maps
+                    </a>
+                </div>
+            `;
 
             // Milestones
             const milestonesContainer = document.getElementById('milestones-list');
@@ -203,7 +247,7 @@
                 `;
             });
 
-            // Rebríček bežcov
+            // Rebríček
             const leaderboard = {};
             runsArray.forEach(r => {
                 const name = r.name ? r.name.trim() : 'Neznámy Bežec';
@@ -211,9 +255,8 @@
             });
 
             const sortedLeaderboard = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]);
-
             const leaderboardContainer = document.getElementById('tab-leaderboard');
-            leaderboardContainer.innerHTML = sortedLeaderboard.length === 0 ? '<div class="text-xs text-gray-500 text-center py-4">Zatiaľ žiadni bežci v rebríčku.</div>' : '';
+            leaderboardContainer.innerHTML = sortedLeaderboard.length === 0 ? '<div class="text-xs text-gray-500 text-center py-4">Žiadni bežci v rebríčku.</div>' : '';
 
             sortedLeaderboard.forEach(([name, km], index) => {
                 let badge = `<span class="w-5 text-center text-gray-500 font-bold">${index + 1}.</span>`;
@@ -232,7 +275,7 @@
                 `;
             });
 
-            // Feed behov
+            // Feed
             const feedContainer = document.getElementById('tab-feed');
             feedContainer.innerHTML = runsArray.length === 0 ? '<div class="text-xs text-gray-500 text-center py-4">Zatiaľ žiadne pridané behy.</div>' : '';
             
@@ -258,7 +301,6 @@
             }
         }
 
-        // 2. ODOSLANIE DÁT DO GOOGLE SHEETS (doPost)
         document.getElementById('run-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const name = document.getElementById('runner-name').value;
@@ -272,12 +314,7 @@
             if (name && km > 0) {
                 fetch(SCRIPT_URL, {
                     method: "POST",
-                    body: JSON.stringify({
-                        action: "add",
-                        name: name,
-                        km: km,
-                        date: date
-                    })
+                    body: JSON.stringify({ action: "add", name, km, date })
                 })
                 .then(() => {
                     document.getElementById('run-km').value = '';
@@ -300,12 +337,8 @@
                     method: 'POST',
                     body: JSON.stringify({ action: 'delete', rowId: rowId })
                 })
-                .then(() => {
-                    fetchRuns();
-                })
-                .catch(() => {
-                    setTimeout(fetchRuns, 1500);
-                });
+                .then(() => { fetchRuns(); })
+                .catch(() => { setTimeout(fetchRuns, 1500); });
             }
         }
 
@@ -341,6 +374,26 @@
         });
         const globe = new THREE.Mesh(globeGeo, globeMat);
         scene.add(globe);
+ROUTE_POINTS.forEach(point => {
+
+    const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 16, 16),
+        new THREE.MeshBasicMaterial({
+            color: 0xffff00
+        })
+    );
+
+    marker.position.copy(
+        latLngToVector3(
+            point.lat,
+            point.lng,
+            61
+        )
+    );
+
+    scene.add(marker);
+
+});
 
         function latLngToVector3(lat, lng, radius) {
             const phi = (90 - lat) * (Math.PI / 180);
@@ -357,17 +410,59 @@
         const runnerMarker = new THREE.Mesh(runnerGeo, runnerMat);
         scene.add(runnerMarker);
 
-        window.updateRunnerPosition = function(totalKm) {
-            const ratio = Math.min(1, totalKm / TOTAL_DISTANCE);
-            const start = ROUTE_POINTS[0];
-            const end = ROUTE_POINTS[ROUTE_POINTS.length - 1];
-            
-            const currentLat = start.lat + (end.lat - start.lat) * ratio;
-            const currentLng = start.lng + (end.lng - start.lng) * ratio;
-            
-            const pos = latLngToVector3(currentLat, currentLng, 61);
-            runnerMarker.position.copy(pos);
-        };
+       let trailLine = null;
+
+window.updateRunnerPosition = function(totalKm) {
+
+    const spot = getCurrentRoutePoint(totalKm);
+
+    const pos = latLngToVector3(
+        spot.lat,
+        spot.lng,
+        61
+    );
+
+    runnerMarker.position.copy(pos);
+
+    if(trailLine){
+        scene.remove(trailLine);
+    }
+
+    const progressPoints = [];
+
+    const maxKm = Math.min(totalKm, TOTAL_DISTANCE);
+
+    for(let km = 0; km <= maxKm; km += 50){
+
+        const p = getCurrentRoutePoint(km);
+
+        progressPoints.push(
+            latLngToVector3(
+                p.lat,
+                p.lng,
+                61.5
+            )
+        );
+
+    }
+
+    const geometry =
+        new THREE.BufferGeometry()
+            .setFromPoints(progressPoints);
+
+    const material =
+        new THREE.LineBasicMaterial({
+            color: 0xff3300
+        });
+
+    trailLine =
+        new THREE.Line(
+            geometry,
+            material
+        );
+
+    scene.add(trailLine);
+};
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
