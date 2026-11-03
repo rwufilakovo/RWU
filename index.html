@@ -11,7 +11,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Roboto, sans-serif; background-color: #050814; color: #fff; }
+        body {
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background-color: #050814;
+    color: #fff;
+}
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         .glass-panel { background: rgba(13, 19, 38, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
