@@ -396,12 +396,12 @@
         const globeGeo = new THREE.SphereGeometry(60, 64, 64);
         const textureLoader = new THREE.TextureLoader();
         const globeMat = new THREE.MeshPhongMaterial({
-            map: textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
-            bumpMap: textureLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
-            bumpScale: 0.5,
-            specular: new THREE.Color(0x333333),
-            shininess: 5
-        });
+    map: textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+    bumpMap: textureLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+    bumpScale: 0.5,
+    specular: new THREE.Color(0x333333),
+    shininess: 5
+});
         const globe = new THREE.Mesh(globeGeo, globeMat);
         scene.add(globe);
 ROUTE_POINTS.forEach(point => {
